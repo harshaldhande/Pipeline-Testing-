@@ -1,15 +1,20 @@
 pipeline {
+
     agent any
 
     environment {
         IMAGE_NAME = "dockerforlearning0213/todo-app"
+        IMAGE_TAG  = "${BUILD_NUMBER}"
+        NAMESPACE  = "todo-app"
+        DEPLOYMENT = "todo-app"
+        CONTAINER  = "todo-app"
     }
 
     stages {
 
-        stage('Checkout') {
+        stage('Checkout Source') {
             steps {
-                echo "Checking out source code..."
+                echo "========== Checking Out Source =========="
                 checkout scm
             }
         }
@@ -19,8 +24,10 @@ pipeline {
                 sh '''
                     echo "========== Building Docker Image =========="
 
-                    docker build -t $IMAGE_NAME:latest .
+                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
 
+                    echo ""
+                    echo "========== Docker Images =========="
                     docker images | grep todo-app
                 '''
             }
@@ -28,7 +35,6 @@ pipeline {
 
         stage('Push Docker Image') {
             steps {
-
                 withCredentials([
                     usernamePassword(
                         credentialsId: 'dockerhub',
@@ -38,80 +44,96 @@ pipeline {
                 ]) {
 
                     sh '''
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        echo "========== Docker Login =========="
 
-                        docker push $IMAGE_NAME:latest
+                        echo "$DOCKER_PASS" | docker login \
+                        -u "$DOCKER_USER" \
+                        --password-stdin
+
+                        echo ""
+                        echo "========== Pushing Image =========="
+
+                        docker push ${IMAGE_NAME}:${IMAGE_TAG}
 
                         docker logout
                     '''
                 }
-
             }
         }
 
         stage('Deploy to Kubernetes') {
-
             steps {
-
                 withCredentials([
-                    file(
-                        credentialsId: 'kubeconfig',
-                        variable: 'KUBECONFIG'
-                    )
+                    file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')
                 ]) {
 
-                    sh '''
-                        echo "========== Restart Deployment =========="
+                    script {
 
-                        kubectl rollout restart deployment/todo-app -n todo-app
+                        try {
 
-                        echo ""
+                            echo "========== Deploying Image =========="
 
-                        echo "========== Waiting for Rollout =========="
+                            sh """
+                                kubectl set image deployment/${DEPLOYMENT} \
+                                ${CONTAINER}=${IMAGE_NAME}:${IMAGE_TAG} \
+                                -n ${NAMESPACE}
+                            """
 
-                        kubectl rollout status deployment/todo-app -n todo-app
+                            echo "========== Waiting for Rollout =========="
 
-                        echo ""
+                            sh """
+                                kubectl rollout status deployment/${DEPLOYMENT} \
+                                -n ${NAMESPACE} \
+                                --timeout=120s
+                            """
 
-                        echo "========== Current Pods =========="
+                            echo "========== Deployment Successful =========="
 
-                        kubectl get pods -n todo-app -o wide
+                        } catch (Exception e) {
 
-                        echo ""
+                            echo "========== Deployment Failed =========="
+                            echo "${e}"
 
-                        echo "========== Deployment =========="
+                            echo "========== Rolling Back =========="
 
-                        kubectl get deployment -n todo-app
+                            sh """
+                                kubectl rollout undo deployment/${DEPLOYMENT} \
+                                -n ${NAMESPACE} || true
+                            """
 
-                        echo ""
+                            sh """
+                                kubectl rollout status deployment/${DEPLOYMENT} \
+                                -n ${NAMESPACE} \
+                                --timeout=120s || true
+                            """
 
-                        echo "========== Service =========="
-
-                        kubectl get svc -n todo-app
-                    '''
-
+                            error("Rollback completed. Deployment failed.")
+                        }
+                    }
                 }
-
             }
-
         }
-
     }
 
     post {
 
         success {
+            echo "========================================="
             echo "Deployment Successful"
+            echo "Image      : ${IMAGE_NAME}:${IMAGE_TAG}"
+            echo "Namespace  : ${NAMESPACE}"
+            echo "========================================="
         }
 
         failure {
+            echo "========================================="
             echo "Deployment Failed"
+            echo "Rollback Executed (if previous revision existed)"
+            echo "========================================="
         }
 
         always {
-            echo "Pipeline Finished"
+            echo "========== Pipeline Finished =========="
         }
-
     }
-
 }

@@ -1,37 +1,61 @@
--- Create a dedicated database user with appropriate privileges
+-- ==========================================
+-- MySQL Initialization Script
+-- ==========================================
 
-CREATE DATABASE IF NOT EXISTS todo_db;
+-- Create Database
+CREATE DATABASE IF NOT EXISTS mytododb
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
 
-CREATE USER IF NOT EXISTS 'todo_user'@'localhost' IDENTIFIED BY 'password';
+-- Create Application User
+CREATE USER IF NOT EXISTS 'todo_user'@'%'
+IDENTIFIED BY 'password';
 
-GRANT ALL PRIVILEGES ON mytododb.* TO 'todo_user'@'localhost';
+-- Grant Permissions
+GRANT ALL PRIVILEGES ON mytododb.* TO 'todo_user'@'%';
+
 FLUSH PRIVILEGES;
 
--- Create the database
-CREATE DATABASE IF NOT EXISTS mytododb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- Use the database
+-- Use Database
 USE mytododb;
 
--- Users table
+-- ==========================================
+-- Users Table
+-- ==========================================
+
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(100) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;
 
--- Tasks table
+-- ==========================================
+-- Tasks Table
+-- ==========================================
+
 CREATE TABLE IF NOT EXISTS tasks (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    status ENUM('Pending', 'Completed') DEFAULT 'Pending',
-    priority ENUM('Low', 'Medium', 'High') DEFAULT 'Medium',
+    status ENUM('Pending', 'Completed')
+        DEFAULT 'Pending',
+    priority ENUM('Low', 'Medium', 'High')
+        DEFAULT 'Medium',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMP NULL DEFAULT NULL,
     user_id INT NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+
+    CONSTRAINT fk_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+
     INDEX idx_user_id (user_id),
     INDEX idx_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;

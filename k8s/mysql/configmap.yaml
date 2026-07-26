@@ -1,0 +1,27 @@
+apiVersion: v1
+data:
+  todo-db.sql: "-- ==========================================\r\n-- MySQL Initialization
+    Script\r\n-- ==========================================\r\n\r\n-- Create Database\r\nCREATE
+    DATABASE IF NOT EXISTS mytododb\r\nCHARACTER SET utf8mb4\r\nCOLLATE utf8mb4_unicode_ci;\r\n\r\n--
+    Create Application User\r\nCREATE USER IF NOT EXISTS 'todo_user'@'%'\r\nIDENTIFIED
+    BY 'password';\r\n\r\n-- Grant Permissions\r\nGRANT ALL PRIVILEGES ON mytododb.*
+    TO 'todo_user'@'%';\r\n\r\nFLUSH PRIVILEGES;\r\n\r\n-- Use Database\r\nUSE mytododb;\r\n\r\n--
+    ==========================================\r\n-- Users Table\r\n-- ==========================================\r\n\r\nCREATE
+    TABLE IF NOT EXISTS users (\r\n    id INT AUTO_INCREMENT PRIMARY KEY,\r\n    username
+    VARCHAR(100) NOT NULL UNIQUE,\r\n    password_hash VARCHAR(255) NOT NULL,\r\n
+    \   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n    updated_at TIMESTAMP
+    DEFAULT CURRENT_TIMESTAMP\r\n        ON UPDATE CURRENT_TIMESTAMP\r\n) ENGINE=InnoDB\r\nDEFAULT
+    CHARSET=utf8mb4\r\nCOLLATE=utf8mb4_unicode_ci;\r\n\r\n-- ==========================================\r\n--
+    Tasks Table\r\n-- ==========================================\r\n\r\nCREATE TABLE
+    IF NOT EXISTS tasks (\r\n    id INT AUTO_INCREMENT PRIMARY KEY,\r\n    name VARCHAR(255)
+    NOT NULL,\r\n    status ENUM('Pending', 'Completed')\r\n        DEFAULT 'Pending',\r\n
+    \   priority ENUM('Low', 'Medium', 'High')\r\n        DEFAULT 'Medium',\r\n    created_at
+    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n    completed_at TIMESTAMP NULL DEFAULT
+    NULL,\r\n    user_id INT NOT NULL,\r\n\r\n    CONSTRAINT fk_user\r\n        FOREIGN
+    KEY (user_id)\r\n        REFERENCES users(id)\r\n        ON DELETE CASCADE,\r\n\r\n
+    \   INDEX idx_user_id (user_id),\r\n    INDEX idx_status (status)\r\n) ENGINE=InnoDB\r\nDEFAULT
+    CHARSET=utf8mb4\r\nCOLLATE=utf8mb4_unicode_ci;\r\n"
+kind: ConfigMap
+metadata:
+  name: mysql-initdb
+  namespace: todo-app

@@ -51,7 +51,7 @@ pipeline {
                         --password-stdin
 
                         echo ""
-                        echo "========== Pushing Image =========="
+                        echo "========== Pushing Docker Image =========="
 
                         docker push ${IMAGE_NAME}:${IMAGE_TAG}
 
@@ -87,28 +87,77 @@ pipeline {
                                 --timeout=120s
                             """
 
+                            echo "========== Rollout History =========="
+
+                            sh """
+                                kubectl rollout history deployment/${DEPLOYMENT} \
+                                -n ${NAMESPACE}
+                            """
+
                             echo "========== Deployment Successful =========="
 
-                        } catch (Exception e) {
+                        } catch (err) {
 
                             echo "========== Deployment Failed =========="
-                            echo "${e}"
+                            echo "${err}"
 
                             echo "========== Rolling Back =========="
 
                             sh """
                                 kubectl rollout undo deployment/${DEPLOYMENT} \
-                                -n ${NAMESPACE} || true
+                                -n ${NAMESPACE}
                             """
+
+                            echo "========== Waiting for Rollback =========="
 
                             sh """
                                 kubectl rollout status deployment/${DEPLOYMENT} \
                                 -n ${NAMESPACE} \
-                                --timeout=120s || true
+                                --timeout=120s
                             """
 
-                            error("Rollback completed. Deployment failed.")
+                            error("Deployment failed. Rollback completed successfully.")
                         }
+                    }
+                }
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                withCredentials([
+                    file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')
+                ]) {
+
+                    script {
+
+                        echo "========== Health Check =========="
+
+                        sh """
+                            kubectl get pods -n ${NAMESPACE}
+                        """
+
+                        timeout(time: 2, unit: 'MINUTES') {
+
+                            sh """
+                                kubectl wait \
+                                --for=condition=Ready \
+                                pod \
+                                -l app=${DEPLOYMENT} \
+                                -n ${NAMESPACE} \
+                                --timeout=120s
+                            """
+                        }
+
+                        echo "========== Pod Details =========="
+
+                        sh """
+                            kubectl get pods \
+                            -n ${NAMESPACE} \
+                            -o wide
+                        """
+
+                        echo "========== All Pods are Healthy =========="
                     }
                 }
             }
@@ -118,6 +167,7 @@ pipeline {
     post {
 
         success {
+
             echo "========================================="
             echo "Deployment Successful"
             echo "Image      : ${IMAGE_NAME}:${IMAGE_TAG}"
@@ -126,6 +176,7 @@ pipeline {
         }
 
         failure {
+
             echo "========================================="
             echo "Deployment Failed"
             echo "Rollback Executed (if previous revision existed)"
@@ -133,6 +184,13 @@ pipeline {
         }
 
         always {
+
+            echo "========== Cleaning Docker Images =========="
+
+            sh '''
+                docker image prune -f
+            '''
+
             echo "========== Pipeline Finished =========="
         }
     }

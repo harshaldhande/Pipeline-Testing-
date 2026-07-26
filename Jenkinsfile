@@ -14,19 +14,6 @@ pipeline {
             }
         }
 
-        stage('Project Information') {
-            steps {
-                sh '''
-                    echo "========== Current Directory =========="
-                    pwd
-
-                    echo ""
-                    echo "========== Project Files =========="
-                    ls -la
-                '''
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
                 sh '''
@@ -51,11 +38,7 @@ pipeline {
                 ]) {
 
                     sh '''
-                        echo "========== Docker Login =========="
-
                         echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-
-                        echo "========== Pushing Image =========="
 
                         docker push $IMAGE_NAME:latest
 
@@ -66,7 +49,8 @@ pipeline {
             }
         }
 
-        stage('Test Kubernetes Connection') {
+        stage('Deploy to Kubernetes') {
+
             steps {
 
                 withCredentials([
@@ -77,50 +61,55 @@ pipeline {
                 ]) {
 
                     sh '''
-                        echo "========== Kubernetes Test =========="
+                        echo "========== Restart Deployment =========="
 
-                        echo "KUBECONFIG = $KUBECONFIG"
-
-                        echo ""
-                        echo "========== Current Context =========="
-                        kubectl config current-context
+                        kubectl rollout restart deployment/todo-app -n todo-app
 
                         echo ""
-                        echo "========== Cluster Info =========="
-                        kubectl cluster-info
+
+                        echo "========== Waiting for Rollout =========="
+
+                        kubectl rollout status deployment/todo-app -n todo-app
 
                         echo ""
-                        echo "========== Nodes =========="
-                        kubectl get nodes
+
+                        echo "========== Current Pods =========="
+
+                        kubectl get pods -n todo-app -o wide
 
                         echo ""
-                        echo "========== Pods =========="
-                        kubectl get pods -n todo-app
+
+                        echo "========== Deployment =========="
+
+                        kubectl get deployment -n todo-app
 
                         echo ""
-                        echo "========== Services =========="
+
+                        echo "========== Service =========="
+
                         kubectl get svc -n todo-app
                     '''
 
                 }
 
             }
+
         }
 
     }
 
     post {
 
-        always {
-            echo "Pipeline Finished."
-        }
-
         success {
-            echo "Pipeline Successful."
+            echo "Deployment Successful"
         }
 
         failure {
-            echo "Pipeline Failed."
+            echo "Deployment Failed"
+        }
+
+        always {
+            echo "Pipeline Finished"
         }
 
     }

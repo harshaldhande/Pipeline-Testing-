@@ -89,7 +89,7 @@ pipeline {
                                             --scanners vuln \
                                                 --ignore-unfixed \
                                                 --severity HIGH,CRITICAL \
-                                                # --exit-code 1 \
+                                          
                                                 .
                                 '''
                         }
@@ -111,9 +111,8 @@ pipeline {
 
                                         trivy image \
                                             --scanners vuln \
-                        --ignore-unfixed \
+											--ignore-unfixed \
                                                 --severity HIGH,CRITICAL \
-                                               #  --exit-code 1 \
                                                 ${IMAGE_NAME}:${IMAGE_TAG}
                                 '''
                         }

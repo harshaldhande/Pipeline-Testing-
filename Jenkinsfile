@@ -1,4 +1,3 @@
-[luffy@jenkins projects]$ cat Jenkinsfile
 pipeline {
 
     agent any

@@ -3,11 +3,14 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "dockerforlearning0213/todo-app"
-        IMAGE_TAG  = "${BUILD_NUMBER}"
-        NAMESPACE  = "todo-app"
-        DEPLOYMENT = "todo-app"
-        CONTAINER  = "todo-app"
+        IMAGE_NAME      = "dockerforlearning0213/todo-app"
+        IMAGE_TAG       = "${BUILD_NUMBER}"
+        NAMESPACE       = "todo-app"
+        DEPLOYMENT      = "todo-app"
+        CONTAINER       = "todo-app"
+
+        SONAR_SCANNER   = tool 'SonarScanner'
+        SONAR_PROJECT   = "todo-app"
     }
 
     stages {
@@ -16,6 +19,39 @@ pipeline {
             steps {
                 echo "========== Checking Out Source =========="
                 checkout scm
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+
+                echo "========== SonarQube Analysis =========="
+
+                withSonarQubeEnv('SonarQube') {
+
+                    sh """
+                        ${SONAR_SCANNER}/bin/sonar-scanner \
+                        -Dsonar.projectKey=${SONAR_PROJECT} \
+                        -Dsonar.projectName=Todo-App \
+                        -Dsonar.sources=. \
+                        -Dsonar.sourceEncoding=UTF-8
+                    """
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+
+                echo "========== Waiting For Quality Gate =========="
+
+                timeout(time: 5, unit: 'MINUTES') {
+
+                    waitForQualityGate abortPipeline: true
+
+                }
+
+                echo "========== Quality Gate Passed =========="
             }
         }
 
@@ -112,7 +148,7 @@ pipeline {
 
                             sh """
                                 kubectl rollout status deployment/${DEPLOYMENT} \
-                                -n ${NAMESPACE} \
+                                -n ${NAMESPACE}
                                 --timeout=120s
                             """
 

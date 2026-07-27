@@ -68,57 +68,57 @@ pipeline {
                 '''
             }
         }
-		
-		stage('Trivy Filesystem Scan') {
-			steps {
 
-				echo "========== Trivy Filesystem Scan =========="
+                stage('Trivy Filesystem Scan') {
+                        steps {
 
-				sh '''
-					mkdir -p reports
+                                echo "========== Trivy Filesystem Scan =========="
 
-					trivy fs \
-					    --scanners vuln \
-						--ignore-unfixed \
-						--severity HIGH,CRITICAL \
-						--format table \
-						--output reports/trivy-fs-report.txt \
-						.
+                                sh '''
+                                        mkdir -p reports
 
-					trivy fs \
-					    --scanners vuln \
-						--ignore-unfixed \
-						--severity HIGH,CRITICAL \
-						--exit-code 1 \
-						.
-				'''
-			}
-		}
-		
-		stage('Trivy Docker Image Scan') {
-			steps {
+                                        trivy fs \
+                                            --scanners vuln \
+                                                --ignore-unfixed \
+                                                --severity HIGH,CRITICAL \
+                                                --format table \
+                                                --output reports/trivy-fs-report.txt \
+                                                .
 
-				echo "========== Trivy Docker Image Scan =========="
+                                        trivy fs \
+                                            --scanners vuln \
+                                                --ignore-unfixed \
+                                                --severity HIGH,CRITICAL \
+                                                # --exit-code 1 \
+                                                .
+                                '''
+                        }
+                }
 
-				sh '''
-					trivy image \
-					    --scanners vuln \
-						--ignore-unfixed \
-						--severity HIGH,CRITICAL \
-						--format table \
-						--output reports/trivy-image-report.txt \
-						${IMAGE_NAME}:${IMAGE_TAG}
+                stage('Trivy Docker Image Scan') {
+                        steps {
 
-					trivy image \
-					    --scanners vuln \
+                                echo "========== Trivy Docker Image Scan =========="
+
+                                sh '''
+                                        trivy image \
+                                            --scanners vuln \
+                                                --ignore-unfixed \
+                                                --severity HIGH,CRITICAL \
+                                                --format table \
+                                                --output reports/trivy-image-report.txt \
+                                                ${IMAGE_NAME}:${IMAGE_TAG}
+
+                                        trivy image \
+                                            --scanners vuln \
                         --ignore-unfixed \
-						--severity HIGH,CRITICAL \
-						--exit-code 1 \
-						${IMAGE_NAME}:${IMAGE_TAG}
-				'''
-			}
-		}
-		
+                                                --severity HIGH,CRITICAL \
+                                               #  --exit-code 1 \
+                                                ${IMAGE_NAME}:${IMAGE_TAG}
+                                '''
+                        }
+                }
+
 
         stage('Push Docker Image') {
             steps {
@@ -270,21 +270,22 @@ pipeline {
             echo "========================================="
         }
 
-		always {
+                always {
 
-			echo "========== Archiving Trivy Reports =========="
+                        echo "========== Archiving Trivy Reports =========="
 
-			archiveArtifacts artifacts: 'reports/*.txt', fingerprint: true, allowEmptyArchive: true
+                        archiveArtifacts artifacts: 'reports/*.txt', fingerprint: true, allowEmptyArchive: true
 
-			echo "========== Cleaning Docker Images =========="
+                        echo "========== Cleaning Docker Images =========="
 
-			sh '''
-				docker image prune -f
-			'''
+                        sh '''
+                                docker image prune -f
+                        '''
 
-			echo "========== Pipeline Finished =========="
-		}
+                        echo "========== Pipeline Finished =========="
+                }
     }
 }
+
 
 

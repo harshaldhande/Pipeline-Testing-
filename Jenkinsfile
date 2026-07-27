@@ -69,54 +69,64 @@ pipeline {
             }
         }
 
-                stage('Trivy Filesystem Scan') {
-                        steps {
 
-                                echo "========== Trivy Filesystem Scan =========="
 
-                                sh '''
-                                        mkdir -p reports
+stage('Trivy Filesystem Scan') {
+    steps {
 
-                                        trivy fs \
-                                            --scanners vuln \
-                                                --ignore-unfixed \
-                                                --severity HIGH,CRITICAL \
-                                                --format table \
-                                                --output reports/trivy-fs-report.txt \
-                                                .
+        echo "========== Trivy Filesystem Scan =========="
 
-                                        trivy fs \
-                                            --scanners vuln \
-                                                --ignore-unfixed \
-                                                --severity HIGH,CRITICAL \
-                                          
-                                                .
-                                '''
-                        }
-                }
+        sh '''
+            mkdir -p reports
 
-                stage('Trivy Docker Image Scan') {
-                        steps {
+            echo "Generating Filesystem Report..."
 
-                                echo "========== Trivy Docker Image Scan =========="
+            trivy fs \
+                --scanners vuln \
+                --ignore-unfixed \
+                --severity HIGH,CRITICAL \
+                --format table \
+                --output reports/trivy-fs-report.txt \
+                .
 
-                                sh '''
-                                        trivy image \
-                                            --scanners vuln \
-                                                --ignore-unfixed \
-                                                --severity HIGH,CRITICAL \
-                                                --format table \
-                                                --output reports/trivy-image-report.txt \
-                                                ${IMAGE_NAME}:${IMAGE_TAG}
+            echo "Scanning Filesystem..."
 
-                                        trivy image \
-                                            --scanners vuln \
-											--ignore-unfixed \
-                                                --severity HIGH,CRITICAL \
-                                                ${IMAGE_NAME}:${IMAGE_TAG}
-                                '''
-                        }
-                }
+            trivy fs \
+                --scanners vuln \
+                --ignore-unfixed \
+                --severity HIGH,CRITICAL \
+                .
+        '''
+    }
+}
+
+stage('Trivy Docker Image Scan') {
+    steps {
+
+        echo "========== Trivy Docker Image Scan =========="
+
+        sh '''
+            echo "Generating Image Report..."
+
+            trivy image \
+                --scanners vuln \
+                --ignore-unfixed \
+                --severity HIGH,CRITICAL \
+                --format table \
+                --output reports/trivy-image-report.txt \
+                ${IMAGE_NAME}:${IMAGE_TAG}
+
+            echo "Scanning Docker Image..."
+
+            trivy image \
+                --scanners vuln \
+                --ignore-unfixed \
+                --severity HIGH,CRITICAL \
+                ${IMAGE_NAME}:${IMAGE_TAG}
+        '''
+    }
+}
+
 
 
         stage('Push Docker Image') {

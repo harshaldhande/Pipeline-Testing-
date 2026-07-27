@@ -2,38 +2,38 @@ apiVersion: apps/v1
 kind: Deployment
 
 metadata:
-  name: todo-app
+  name: mysql
   namespace: todo-app
 
 spec:
-  replicas: 2
+  replicas: 1
 
   selector:
     matchLabels:
-      app: todo-app
+      app: mysql
 
   template:
     metadata:
       labels:
-        app: todo-app
+        app: mysql
 
     spec:
       automountServiceAccountToken: false
 
       containers:
-      - name: todo-app
+      - name: mysql
 
-        image: dockerforlearning0213/todo-app:latest
+        image: mysql:8.0
 
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
 
         ports:
-        - containerPort: 80
+        - containerPort: 3306
 
         resources:
           requests:
             cpu: "100m"
-            memory: "128Mi"
+            memory: "256Mi"
             ephemeral-storage: "500Mi"
 
           limits:
@@ -41,24 +41,18 @@ spec:
             memory: "512Mi"
             ephemeral-storage: "1Gi"
 
-        env:
-        - name: DB_HOST
-          value: mysql
+        envFrom:
+        - secretRef:
+            name: mysql-secret
 
-        - name: DB_USER
-          valueFrom:
-            secretKeyRef:
-              name: mysql-secret
-              key: MYSQL_USER
+        - configMapRef:
+            name: mysql-config
 
-        - name: DB_PASS
-          valueFrom:
-            secretKeyRef:
-              name: mysql-secret
-              key: MYSQL_PASSWORD
+        volumeMounts:
+        - name: mysql-storage
+          mountPath: /var/lib/mysql
 
-        - name: DB_NAME
-          valueFrom:
-            secretKeyRef:
-              name: mysql-secret
-              key: MYSQL_DATABASE
+      volumes:
+      - name: mysql-storage
+        persistentVolumeClaim:
+          claimName: mysql-pvc

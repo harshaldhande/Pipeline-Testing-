@@ -77,7 +77,16 @@ stage('Trivy Filesystem Scan') {
         echo "========== Trivy Filesystem Scan =========="
 
         sh '''
+		
+		
             mkdir -p reports
+			    echo "===== DEBUG ====="
+    whoami
+    echo $HOME
+    pwd
+    ls -la
+    ls -la ~/.trivy
+    ls -la ~/.trivy/templates
 
             echo "Generating Filesystem Report..."
 

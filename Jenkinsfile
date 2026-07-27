@@ -247,14 +247,11 @@ stage('Trivy Docker Image Scan') {
 
                         timeout(time: 2, unit: 'MINUTES') {
 
-                            sh """
-                                kubectl wait \
-                                --for=condition=Ready \
-                                pod \
-                                -l app=${DEPLOYMENT} \
-                                -n ${NAMESPACE} \
-                                --timeout=120s
-                            """
+							sh """
+							kubectl rollout status deployment/${DEPLOYMENT} \
+							-n ${NAMESPACE} \
+							--timeout=120s
+							"""
                         }
 
                         echo "========== Pod Details =========="
@@ -291,7 +288,7 @@ stage('Trivy Docker Image Scan') {
             echo "========================================="
         }
 
-                always {
+                always {   
 
                         echo "========== Archiving Trivy Reports =========="
 						

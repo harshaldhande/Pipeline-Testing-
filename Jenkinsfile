@@ -1,3 +1,4 @@
+[luffy@jenkins projects]$ cat Jenkinsfile
 pipeline {
 
     agent any
@@ -85,8 +86,9 @@ stage('Trivy Filesystem Scan') {
                 --scanners vuln \
                 --ignore-unfixed \
                 --severity HIGH,CRITICAL \
-                --format table \
-                --output reports/trivy-fs-report.txt \
+                --format template \
+                --template "@$HOME/.trivy/templates/html.tpl" \
+                --output reports/trivy-fs-report.html \
                 .
 
             echo "Scanning Filesystem..."
@@ -112,8 +114,9 @@ stage('Trivy Docker Image Scan') {
                 --scanners vuln \
                 --ignore-unfixed \
                 --severity HIGH,CRITICAL \
-                --format table \
-                --output reports/trivy-image-report.txt \
+                --format template \
+                --template "@$HOME/.trivy/templates/html.tpl" \
+                --output reports/trivy-image-report.html \
                 ${IMAGE_NAME}:${IMAGE_TAG}
 
             echo "Scanning Docker Image..."
@@ -282,8 +285,26 @@ stage('Trivy Docker Image Scan') {
                 always {
 
                         echo "========== Archiving Trivy Reports =========="
+						
+						publishHTML(target: [
+							allowMissing: false,
+							alwaysLinkToLastBuild: true,
+							keepAll: true,
+							reportDir: 'reports',
+							reportFiles: 'trivy-image-report.html',
+							reportName: 'Trivy Image Report'
+						])
 
-                        archiveArtifacts artifacts: 'reports/*.txt', fingerprint: true, allowEmptyArchive: true
+						publishHTML(target: [
+							allowMissing: false,
+							alwaysLinkToLastBuild: true,
+							keepAll: true,
+							reportDir: 'reports',
+							reportFiles: 'trivy-fs-report.html',
+							reportName: 'Trivy Filesystem Report'
+						])
+
+                        archiveArtifacts artifacts: 'reports/**/*.html', fingerprint: true
 
                         echo "========== Cleaning Docker Images =========="
 
@@ -295,6 +316,7 @@ stage('Trivy Docker Image Scan') {
                 }
     }
 }
+
 
 
 

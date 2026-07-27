@@ -29,13 +29,14 @@ pipeline {
 
                 withSonarQubeEnv('SonarQube') {
 
-                    sh """
-                        ${SONAR_SCANNER}/bin/sonar-scanner \
-                        -Dsonar.projectKey=${SONAR_PROJECT} \
-                        -Dsonar.projectName=Todo-App \
-                        -Dsonar.sources=. \
-                        -Dsonar.sourceEncoding=UTF-8
-                    """
+				sh """
+					${SONAR_SCANNER}/bin/sonar-scanner \
+					-Dsonar.projectKey=${SONAR_PROJECT} \
+					-Dsonar.projectName=Todo-App \
+					-Dsonar.sources=. \
+					-Dsonar.sourceEncoding=UTF-8 \
+					-Dsonar.exclusions=reports/**,.scannerwork/**,vendor/**
+				"""
                 }
             }
         }

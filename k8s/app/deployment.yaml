@@ -18,6 +18,8 @@ spec:
         app: todo-app
 
     spec:
+      automountServiceAccountToken: false
+
       containers:
       - name: todo-app
 
@@ -27,6 +29,17 @@ spec:
 
         ports:
         - containerPort: 80
+
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+            ephemeral-storage: "500Mi"
+
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+            ephemeral-storage: "1Gi"
 
         env:
         - name: DB_HOST
